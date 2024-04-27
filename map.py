@@ -2,6 +2,7 @@ import osmnx as ox
 import networkx as nx
 import matplotlib.pyplot as plt
 import xml.etree.ElementTree as ET
+import numpy as np
 
 def analyze_and_plot_road_network(place_name):
     # Customize filter to include only certain types of highways
@@ -14,6 +15,7 @@ def analyze_and_plot_road_network(place_name):
     # Define safety values and calculate capacities
     safety_values = {'motorway': 0.9, 'trunk': 0.8, 'primary': 0.6, 'secondary': 0.4, 'tertiary': 0.2}
 
+    # Assign capacity to edges
     for u, v, d in graph.edges(data=True):
         road_type = d.get('highway', 'unknown')
         if isinstance(road_type, list):
@@ -30,17 +32,22 @@ def analyze_and_plot_road_network(place_name):
         length = float(d['length'])
         d['capacity'] = (safety_value * 50) + (10 * lanes) - 2 * (length / 1000)
 
-    # Plotting with background map and increased node size
+    # Select a random node to mark as 'safe zone'
+    random_node = np.random.choice(list(graph.nodes()))
+    for node in graph.nodes():
+        graph.nodes[node]['safe_zone'] = 'no'
+    graph.nodes[random_node]['safe_zone'] = 'yes'
+
+    # Plotting
+    node_color = ['#66ccff' if graph.nodes[node]['safe_zone'] == 'no' else 'red' for node in graph.nodes]
+    node_size = [30 if graph.nodes[node]['safe_zone'] == 'no' else 100 for node in graph.nodes]
     ec = ox.plot.get_edge_colors_by_attr(graph, attr='capacity', cmap='viridis', num_bins=20)
-    fig, ax = ox.plot_graph(graph, edge_color=ec, edge_linewidth=2, node_size=30, node_color='#66ccff', bgcolor='k')
+    fig, ax = ox.plot_graph(graph, edge_color=ec, edge_linewidth=2, node_size=node_size, node_color=node_color, bgcolor='k')
     plt.show()
-    #save the plot to png
     fig.savefig(f"{place_name.replace(' ', '_')}_graph.png")
 
     # Convert to a directed graph
     digraph = nx.DiGraph(graph)
-
-    
 
     # Save the graph to an OSM file
     create_osm_file(graph, f"{place_name.replace(' ', '_')}_graph.osm")
@@ -67,5 +74,5 @@ def create_osm_file(graph, filename):
     tree.write(filename, encoding='utf-8', xml_declaration=True)
 
 # Example usage:
-graph = analyze_and_plot_road_network("Rafah, Gaza Strip, Palestinian Territories")
-# Now 'graph' holds the directed graph which can be used for further analysis or manipulation.
+graph = analyze_and_plot_road_network("Musaffah, Abu Dhabi, United Arab Emirates")
+# Now 'graph' holds the directed graph which can be used for
