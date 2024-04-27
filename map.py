@@ -34,6 +34,8 @@ def analyze_and_plot_road_network(place_name):
     ec = ox.plot.get_edge_colors_by_attr(graph, attr='capacity', cmap='viridis', num_bins=20)
     fig, ax = ox.plot_graph(graph, edge_color=ec, edge_linewidth=2, node_size=30, node_color='#66ccff', bgcolor='k')
     plt.show()
+    #save the plot to png
+    fig.savefig(f"{place_name.replace(' ', '_')}_graph.png")
 
     # Convert to a directed graph
     digraph = nx.DiGraph(graph)
