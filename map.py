@@ -66,5 +66,5 @@ def create_osm_file(graph, filename):
     tree.write(filename, encoding='utf-8', xml_declaration=True)
 
 # Example usage
-create_osm_file(graph, "output.osm")
+create_osm_file(graph, "graph.osm")
 
