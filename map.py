@@ -1,46 +1,70 @@
 import osmnx as ox
 import networkx as nx
 import matplotlib.pyplot as plt
-import json
+import matplotlib.colors as colors
+import numpy as np
 
 # Specify the location name
 place_name = "Musaffah, Abu Dhabi, United Arab Emirates"
 
-# Fetch OSM street network from the location
-# Customize filter to include only highways
+# Customize filter to include only certain types of highways
 custom_filter = '["highway"]["area"!~"yes"]["highway"~"motorway|trunk|primary|secondary|tertiary"]'
 graph = ox.graph_from_place(place_name, network_type='drive', custom_filter=custom_filter)
 
-# Simplify graph to merge nodes
-#graph = ox.simplify_graph(graph)
+# Simplify graph to merge nodes and consolidate intersections
+graph = ox.consolidate_intersections(ox.project_graph(graph), tolerance=100, rebuild_graph=True, dead_ends=False)
 
-# Plot the street network and save to a file
-fig, ax = ox.plot_graph(ox.project_graph(graph))
-plt.savefig('highway_network_plot.png')
+# Define safety values and calculate capacities
+safety_values = {
+    'motorway': 0.9,
+    'trunk': 0.8,
+    'primary': 0.6,
+    'secondary': 0.4,
+    'tertiary': 0.2
+}
 
+for u, v, d in graph.edges(data=True):
+    road_type = d['highway']
+    if isinstance(road_type, list):  # Handle multiple types
+        road_type = road_type[0]
+    safety_value = safety_values.get(road_type, 0.5)
 
+    lanes = d.get('lanes', '1')
+    if isinstance(lanes, list):
+        lanes = lanes[0]
+    lanes = int(lanes.split(";")[0])
 
-##plt.close(fig)
+    length = float(d['length'])
+    d['capacity'] = (safety_value * 50) + (10 * lanes) - 2 * (length/1000)
 
-# Save the graph to a GraphML file
-ox.save_graphml(graph, filepath='highway_network.graphml')
+# Plotting with background map and increased node size
+ec = ox.plot.get_edge_colors_by_attr(graph, attr='capacity', cmap='viridis', num_bins=20)  # Color edges by capacity
+fig, ax = ox.plot_graph(graph, edge_color=ec, edge_linewidth=2, node_size=30, node_color='#66ccff', bgcolor='k')  # `bgcolor='k'` for transparency on the basemap
 
-# Read the graph from GraphML
-g = nx.read_graphml('highway_network.graphml')
+plt.show()  # Show plot for visual confirmation
+#plt.savefig('highway_network_capacity_plot.png')  # Save figure if needed
 
-# Optionally, convert the graph to JSON format
-data_json = json.dumps(nx.readwrite.json_graph.node_link_data(g))
-with open('highway_network.json', 'w') as f:
-    f.write(data_json)
+import xml.etree.ElementTree as ET
 
-# To prepare for max flow analysis:
-# Add capacity based on number of lanes or other suitable properties if available
-for u, v, d in g.edges(data=True):
-    # You might need to adjust this depending on what data is actually available in your GraphML
-    d['capacity'] = d.get('lanes', 1)  # Default to 1 if lane data is not available
+def create_osm_file(graph, filename):
+    osm = ET.Element("osm", version="0.6", generator="OSMnx")
+    for node_id, data in graph.nodes(data=True):
+        node = ET.SubElement(osm, "node", id=str(node_id), visible="true", 
+                             lat=str(data['y']), lon=str(data['x']))
+        for key, value in data.items():
+            if key not in ['x', 'y']:  # skip coordinates which are attributes of the node element
+                tag = ET.SubElement(node, "tag", k=key, v=str(value))
 
-# Use networkx to find maximum flow between two nodes (example):
-# You need to specify source and target nodes
-## source, target = list(g.nodes())[0], list(g.nodes())[-1]
-##flow_value, flow_dict = nx.maximum_flow(g, source, target, capacity='capacity')
-##print("Max flow from node {} to node {}: {}".format(source, target, flow_value))
+    for u, v, data in graph.edges(data=True):
+        way = ET.SubElement(osm, "way", id=f"{u}_{v}", visible="true")
+        nd1 = ET.SubElement(way, "nd", ref=str(u))
+        nd2 = ET.SubElement(way, "nd", ref=str(v))
+        for key, value in data.items():
+            tag = ET.SubElement(way, "tag", k=key, v=str(value))
+
+    tree = ET.ElementTree(osm)
+    tree.write(filename, encoding='utf-8', xml_declaration=True)
+
+# Example usage
+create_osm_file(graph, "output.osm")
+
