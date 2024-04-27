@@ -33,10 +33,17 @@ def analyze_and_plot_road_network(place_name):
         d['capacity'] = (safety_value * 50) + (10 * lanes) - 2 * (length / 1000)
 
     # Select a random node to mark as 'safe zone'
-    random_node = np.random.choice(list(graph.nodes()))
+    random_node1 = np.random.choice(list(graph.nodes()))
+    random_node2 = np.random.choice(list(graph.nodes()))
+    random_node3 = np.random.choice(list(graph.nodes()))
+    random_node4 = np.random.choice(list(graph.nodes()))
+
     for node in graph.nodes():
         graph.nodes[node]['safe_zone'] = 'no'
-    graph.nodes[random_node]['safe_zone'] = 'yes'
+    graph.nodes[random_node1]['safe_zone'] = 'yes'
+    graph.nodes[random_node2]['safe_zone'] = 'yes'
+    graph.nodes[random_node3]['safe_zone'] = 'yes'
+    graph.nodes[random_node4]['safe_zone'] = 'yes'
 
     # Plotting
     node_color = ['#66ccff' if graph.nodes[node]['safe_zone'] == 'no' else 'red' for node in graph.nodes]
@@ -74,5 +81,5 @@ def create_osm_file(graph, filename):
     tree.write(filename, encoding='utf-8', xml_declaration=True)
 
 # Example usage:
-graph = analyze_and_plot_road_network("Musaffah, Abu Dhabi, United Arab Emirates")
+graph = analyze_and_plot_road_network("Rafah, Palestinian Territories")
 # Now 'graph' holds the directed graph which can be used for
