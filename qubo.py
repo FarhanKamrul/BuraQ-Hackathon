@@ -265,7 +265,33 @@ if __name__ == "__main__":
     
     fig.add_trace(edge_trace)
 
-    fig.write_html("test.html", include_plotlyjs='cdn', full_html=False)
+    fig.write_html(f"Rafah_{solver_type}.html", include_plotlyjs='cdn', full_html=False)
 
-    # Add the solution to the plot
+    # Repeat but for MST
+    undirected_graph = graph.to_undirected()
+
+    # Compute the minimum spanning tree of the undirected graph
+    mst_graph = nx.minimum_spanning_tree(undirected_graph, weight='capacity')
+
+    edges = mst_graph.edges(data=True)
+
+    fig = map.plot_graph(graph, "Rafah, Gaza Strip, Palestinian Territories")
+
+    pos = {node: (data['x'], data['y']) for node, data in graph.nodes(data=True)}
+    edge_x = []
+    edge_y = []
+    for edge in mst_graph.edges():
+        x0, y0 = pos[edge[0]]
+        x1, y1 = pos[edge[1]]
+        edge_x.extend([x0, x1, None])
+        edge_y.extend([y0, y1, None])
+
+    edge_trace = go.Scatter(
+        x=edge_x, y=edge_y,
+        line=dict(width=1, color='red'),
+        hoverinfo='none',
+        mode='lines')
     
+    fig.add_trace(edge_trace)
+
+    fig.write_html("Rafah_mst.html", include_plotlyjs='cdn', full_html=False)
