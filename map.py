@@ -41,6 +41,12 @@ def analyze_and_plot_road_network(place_name):
 
     # Convert to a directed graph
     digraph = nx.DiGraph(graph)
+
+    # For each edge, check if the reverse edge exists and if not, add it
+    for u, v, d in list(digraph.edges(data=True)):
+        if not digraph.has_edge(v, u):
+            digraph.add_edge(v, u, **d)
+
     create_osm_file(graph, f"{place_name.replace(' ', '_')}_graph.osm")
     return digraph
 
