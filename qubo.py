@@ -144,17 +144,20 @@ def edges_from_solution(sample, edge_strings):
 
 # Main function
 if __name__ == "__main__":
+    location_name = "Rafah, Gaza Strip, Palestinian Territories"
+    # location_name = "Abu Dhabi, UAE"
+
     # Load the graph
-    graph = map.analyze_and_plot_road_network("Rafah, Gaza Strip, Palestinian Territories")
+    graph = map.analyze_and_plot_road_network(location_name)
 
     # Convert the graph to a QUBO
     qubo, edge_strings = map_to_qubo(graph)
 
     # Solve the QUBO
-    sampler = SimulatedAnnealingSampler()
-    solver_type = "simulated_annealing"
-    # sampler = EmbeddingComposite(DWaveSampler())
-    # solver_type = "quantum"
+    # sampler = SimulatedAnnealingSampler()
+    # solver_type = "simulated_annealing"
+    sampler = EmbeddingComposite(DWaveSampler())
+    solver_type = "quantum"
     response = sampler.sample(qubo, num_reads=100)
 
     # Print sum(e_i) for the solution
@@ -243,10 +246,10 @@ if __name__ == "__main__":
 
     print(dict_coordinates)
 
-    with open(f"coordinates_{solver_type}.json", "w") as f:
+    with open(f"{location_name}_coordinates_{solver_type}.json", "w") as f:
         json.dump(dict_coordinates, f)
 
-    fig = map.plot_graph(graph, "Rafah, Gaza Strip, Palestinian Territories")
+    fig = map.plot_graph(graph, location_name)
 
     pos = {node: (data['x'], data['y']) for node, data in graph.nodes(data=True)}
     edge_x = []
@@ -265,7 +268,7 @@ if __name__ == "__main__":
     
     fig.add_trace(edge_trace)
 
-    fig.write_html(f"Rafah_{solver_type}.html", include_plotlyjs='cdn', full_html=False)
+    fig.write_html(f"{location_name}_{solver_type}.html", include_plotlyjs='cdn', full_html=False)
 
     # Repeat but for MST
     undirected_graph = graph.to_undirected()
@@ -275,7 +278,7 @@ if __name__ == "__main__":
 
     edges = mst_graph.edges(data=True)
 
-    fig = map.plot_graph(graph, "Rafah, Gaza Strip, Palestinian Territories")
+    fig = map.plot_graph(graph, location_name)
 
     pos = {node: (data['x'], data['y']) for node, data in graph.nodes(data=True)}
     edge_x = []
@@ -294,4 +297,4 @@ if __name__ == "__main__":
     
     fig.add_trace(edge_trace)
 
-    fig.write_html("Rafah_mst.html", include_plotlyjs='cdn', full_html=False)
+    fig.write_html(f"{location_name}_mst.html", include_plotlyjs='cdn', full_html=False)

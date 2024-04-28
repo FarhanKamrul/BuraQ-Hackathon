@@ -6,8 +6,20 @@ import xml.etree.ElementTree as ET
 
 def analyze_and_plot_road_network(place_name):
     custom_filter = '["highway"]["area"!~"yes"]["highway"~"motorway|trunk|primary|secondary|tertiary"]'
-    graph = ox.graph_from_place(place_name, network_type='drive', custom_filter=custom_filter)
-    graph = ox.consolidate_intersections(ox.project_graph(graph), tolerance=100, rebuild_graph=True, dead_ends=False)
+    graph_raw = ox.graph_from_place(place_name, network_type='drive', custom_filter=custom_filter)
+    graph = ox.consolidate_intersections(ox.project_graph(graph_raw), tolerance=100, rebuild_graph=True, dead_ends=False)
+    for u, data in graph.nodes(data=True):
+        nodes = graph_raw.nodes(data=True)
+
+        # parse 'osmid_original' as a list of integers
+        if type(data['osmid_original']) != int:
+            data['osmid_original'] = [int(osmid) for osmid in data['osmid_original'].replace("[", "").replace("]", "").replace(" ", "").split(",")]
+        else:
+            data['osmid_original'] = [data['osmid_original']]
+
+        ## Replace x and y with average x and y from osmid_original nodes in graph_raw
+        graph.nodes[u]['x'] = np.mean([ nodes[osmid]['x'] for osmid in data['osmid_original'] ])
+        graph.nodes[u]['y'] = np.mean([ nodes[osmid]['y'] for osmid in data['osmid_original'] ])
 
     # Define safety values and calculate capacities
     safety_values = {'motorway': 0.9, 'trunk': 0.8, 'primary': 0.6, 'secondary': 0.4, 'tertiary': 0.2}
@@ -44,6 +56,11 @@ def analyze_and_plot_road_network(place_name):
 
     # For each edge, check if the reverse edge exists and if not, add it
     for u, v, d in list(digraph.edges(data=True)):
+        if u == v:
+            print(f"Self-loop detected: {u}")
+            ## Remove self-loops
+            digraph.remove_edge(u, v)
+            continue
         if not digraph.has_edge(v, u):
             digraph.add_edge(v, u, **d)
 
